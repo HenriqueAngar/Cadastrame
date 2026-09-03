@@ -1,0 +1,52 @@
+{
+  "application": {
+    "name": "CadastraME",
+    "environment": "production",
+    "debug": true,
+    "timezone": "America/Sao_Paulo"
+  },
+
+  "database": {
+    "connections": {
+      "development": "teste",
+      "homologation": "warehouse",
+      "production": "warehouse"
+    }
+  },
+
+  "api": {
+    "connections": {
+      "development": "openmeteo",
+      "homologation": "openmeteo",
+      "production": "openmeteo"
+    }
+  },
+
+  "repository": {
+    "connections": {
+      "development": "nfes",
+      "homologation": "nfes",
+      "production": "nfes"
+    }
+  },
+
+  "logging": {
+    "level": "INFO",
+    "audit": true,
+    "sql": false
+  },
+
+  "cache": {
+    "enabled": true,
+    "ttl": 300
+  },
+
+  "upload": {
+    "max_file_size_mb": 100,
+    "allowed_extensions": [
+      ".xlsx",
+      ".csv",
+      ".ods"
+    ]
+  }
+}
