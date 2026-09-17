@@ -32,3 +32,15 @@ Muitos desses clientes utilizam sistemas ERP antigos ou com limitações para re
 Atualmente, essas informações são frequentemente mantidas em planilhas Excel ou Google Sheets, tornando-se fontes externas ao Data Warehouse e dificultando a governança, padronização e integração dos dados.
 
 O projeto tem como objetivo **centralizar e padronizar a entrada dessas informações**, reduzindo a dependência de planilhas e facilitando sua utilização nos processos de **Business Intelligence (BI)** e na geração de dashboards corporativos.
+
+## Etapa atual — fundação UI/UX
+
+Esta etapa mantém a implementação deliberadamente genérica e incompleta para acompanhar o desenvolvimento incremental:
+
+- `ui/app`: inicialização, registro de módulos e navegação principal;
+- `ui/components/modules`: contrato de módulo, registro de assets e navegador interno;
+- `ui/modules/home`: Home exclusiva como ponto de entrada;
+- `ui/modules/cadastros`: módulo genérico de Cadastros;
+- `ui/modules/operacoes`: módulo genérico de Operações.
+
+Os módulos contêm apenas a estrutura de navegação e placeholders de interface. Casos de uso, regras de negócio, persistência e autenticação visual serão conectados em etapas posteriores.
