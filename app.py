@@ -1,20 +1,10 @@
 import streamlit as st
 import psycopg2
 
-
-# ==========================================
-# CONFIGURAÇÃO
-# ==========================================
-
 st.set_page_config(
     page_title="Cadastrame",
     layout="centered"
 )
-
-
-# ==========================================
-# CONEXÃO COM O BANCO
-# ==========================================
 
 def conectar_banco():
 
@@ -25,11 +15,6 @@ def conectar_banco():
         user="rique",
         password="B2GripenNGKc390F4"
     )
-
-
-# ==========================================
-# VERIFICAR E-MAIL
-# ==========================================
 
 def verificar_email(email):
 
@@ -62,11 +47,6 @@ def verificar_email(email):
     finally:
 
         conn.close()
-
-
-# ==========================================
-# CSS
-# ==========================================
 
 st.markdown(
     """
@@ -106,12 +86,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-# ==========================================
-# MARCA
-# ==========================================
-
 st.markdown(
     """
     <div class="logo">
@@ -120,11 +94,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-# ==========================================
-# TÍTULO
-# ==========================================
 
 st.markdown(
     """
@@ -135,20 +104,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-# ==========================================
-# E-MAIL
-# ==========================================
-
 email = st.text_input(
     "E-mail",
     placeholder="Digite seu e-mail"
 )
-
-
-# ==========================================
-# CONTINUAR
-# ==========================================
 
 if st.button(
     "Continuar",
@@ -166,29 +125,17 @@ if st.button(
 
             usuario = verificar_email(email)
 
-            # ==================================
-            # E-MAIL NÃO EXISTE NO BANCO
-            # ==================================
-
             if usuario is None:
 
                 st.error(
                     "Este e-mail não possui acesso ao Cadastrame."
                 )
 
-            # ==================================
-            # USUÁRIO DESATIVADO
-            # ==================================
-
             elif not usuario[3]:
 
                 st.error(
                     "Este usuário está desativado."
                 )
-
-            # ==================================
-            # USUÁRIO ENCONTRADO
-            # ==================================
 
             else:
 
