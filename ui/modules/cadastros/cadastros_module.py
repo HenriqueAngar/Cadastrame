@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ui.components.modules.assets import AssetDefinition, AssetRegistry
+from ui.components.modules.assets import AssetRegistry
 from ui.components.modules.module import Module, ModuleDefinition
 
 
@@ -15,13 +15,10 @@ class CadastrosModule:
                 key="cadastros",
                 title="Cadastros",
                 icon="🗂️",
+                placeholder="Aqui haverão formulários de cadastro. Esta área será desenvolvida em uma próxima etapa.",
             ),
-            assets=AssetRegistry(
-                AssetDefinition("cadastro_1", "Cadastro 1", order=1),
-                AssetDefinition("cadastro_2", "Cadastro 2", order=2),
-            ),
+            assets=AssetRegistry(),
         )
 
     def respond(self) -> None:
         return self._module.respond()
-

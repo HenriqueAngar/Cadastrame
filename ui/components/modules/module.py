@@ -18,11 +18,13 @@ class ModuleDefinition:
     title: str
     icon: str
     navigator: bool = True
+    resource_page_code: str | None = None
+    placeholder: str = "Aqui haverá formulários deste módulo."
 
 
 @dataclass(slots=True)
 class Module:
-    """Base incompleta para módulos orientados a assets."""
+    """Base para módulos; mantém assets preparados para a próxima etapa."""
 
     definition: ModuleDefinition
     assets: AssetRegistry
@@ -33,17 +35,5 @@ class Module:
 
     def respond(self) -> None:
         st.title(f"{self.definition.icon} {self.definition.title}")
-
-        if not self.assets.items:
-            st.info("Este módulo está reservado para a próxima etapa.")
-            return None
-
-        asset = self.navigator.render(self.assets)
-        st.divider()
-        st.subheader(asset.label)
-        st.caption(
-            "Estrutura inicial do asset. O caso de uso será implementado "
-            "em uma etapa posterior."
-        )
+        st.info(self.definition.placeholder)
         return None
-

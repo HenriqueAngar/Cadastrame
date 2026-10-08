@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ui.components.modules.assets import AssetDefinition, AssetRegistry
+from ui.components.modules.assets import AssetRegistry
 from ui.components.modules.module import Module, ModuleDefinition
 
 
@@ -15,14 +15,10 @@ class OperacoesModule:
                 key="operacoes",
                 title="Operações",
                 icon="⚙️",
+                placeholder="Aqui haverão formulários de operações. Esta área será desenvolvida em uma próxima etapa.",
             ),
-            assets=AssetRegistry(
-                AssetDefinition("operacao_1", "Operação 1", order=1),
-                AssetDefinition("operacao_2", "Operação 2", order=2),
-                AssetDefinition("operacao_3", "Operação 3", order=3),
-            ),
+            assets=AssetRegistry(),
         )
 
     def respond(self) -> None:
         return self._module.respond()
-

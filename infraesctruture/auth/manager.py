@@ -175,5 +175,5 @@ class AuthManager:
             idrole=user.idrole,
             username=user.username,
             email=user.email,
-            resources=resources,
+            resources=tuple(resources),
         )
