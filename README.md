@@ -33,7 +33,6 @@ Atualmente, essas informações são frequentemente mantidas em planilhas Excel 
 
 O projeto tem como objetivo **centralizar e padronizar a entrada dessas informações**, reduzindo a dependência de planilhas e facilitando sua utilização nos processos de **Business Intelligence (BI)** e na geração de dashboards corporativos.
 
-Writing
 
 ## Etapa atual — Codificação final, implementação e testes do projeto
 
