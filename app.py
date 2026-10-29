@@ -1,4 +1,4 @@
-"""Ponto de entrada da aplicação Cadastrame."""
+"""Ponto de entrada da aplicação."""
 
 from ui.app.main import main
 

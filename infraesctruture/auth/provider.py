@@ -9,6 +9,7 @@ from infraesctruture.auth.utils.models import (
     UserRecord,
 )
 from infraesctruture.auth.utils import queries
+from infraesctruture.auth.utils.handler import PasswordAlreadySetError
 
 
 class AuthProvider:
@@ -37,6 +38,14 @@ class AuthProvider:
                     return None
 
                 return UserRecord(*row)
+
+    @staticmethod
+    def get_user_by_id(iduser: int) -> UserRecord | None:
+        with manager.database() as conn:
+            with conn.cursor() as cur:
+                cur.execute(queries.GET_USER_BY_ID, (iduser,))
+                row = cur.fetchone()
+                return None if row is None else UserRecord(*row)
 
     @staticmethod
     def get_role_resources(
@@ -80,6 +89,9 @@ class AuthProvider:
                         iduser,
                     ),
                 )
+
+                if cur.rowcount != 1:
+                    raise PasswordAlreadySetError()
 
     @staticmethod
     def update_last_login(

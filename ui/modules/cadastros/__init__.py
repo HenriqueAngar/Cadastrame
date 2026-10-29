@@ -1,1 +1,0 @@
-"""Módulo genérico de Cadastros."""

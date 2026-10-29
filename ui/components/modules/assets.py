@@ -1,60 +1,294 @@
-"""Registro genérico dos assets de um módulo."""
+"""Assets de um módulo."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field,
+)
 
-from infraesctruture.auth.utils.models import Resource
+import streamlit as st
+
+from shared.records import Records
+
+from ui.components.editor.editor import (
+    Editor,
+    EditorAction,
+)
+from ui.components.form.form import FormDefinition
 
 
-@dataclass(frozen=True, slots=True)
-class AssetDefinition:
-    """Contrato mínimo de um asset de interface."""
+# ==========================================================
+# ASSET
+# ==========================================================
 
-    key: str
-    label: str
+@dataclass(slots=True)
+class Asset:
+    """
+    Define um asset pertencente a um módulo.
+
+    Um asset é composto por:
+
+        • Definição
+
+        • Formulário
+
+        • Editor (opcional)
+    """
+
+    editor: bool = True
+
     order: int = 0
-    form_code: str | None = None
 
+    _editor: Editor | None = field(
+        init=False,
+        default=None,
+    )
 
-@dataclass(frozen=True, slots=True)
-class AssetRegistry:
-    """Coleção ordenada de assets, com filtro por recurso autorizado."""
+    def __post_init__(
+        self,
+    ) -> None:
 
-    items: tuple[AssetDefinition, ...] = ()
+        if self.editor:
 
-    def __init__(self, *assets: AssetDefinition) -> None:
-        object.__setattr__(
-            self,
-            "items",
-            tuple(sorted(assets, key=lambda asset: asset.order)),
+            self._editor = Editor(
+
+                key=self.definition.key,
+
+            )
+
+    # ==========================================================
+    # PROPERTIES
+    # ==========================================================
+
+    @property
+    def definition(
+        self,
+    ) -> FormDefinition:
+
+        return type(self).DEFINITION
+
+    # ==========================================================
+    # PUBLIC
+    # ==========================================================
+
+    def respond(
+        self,
+        *,
+        context: Records | None = None,
+        records: Records | None = None,
+        submitted: bool = False,
+        **kwargs,
+    ) -> Records | str | None:
+
+        response = self.render_form(
+
+            context=context,
+
+            records=records,
+
+            **kwargs,
+
         )
+
+        #
+        # Assets sem editor (Home).
+        #
+
+        if not self.editor:
+
+            return response
+
+        #
+        # Assets de navegação.
+        #
+
+        if isinstance(
+
+            response,
+
+            str,
+
+        ):
+
+            return response
+
+        #
+        # Mantém o buffer da sessão.
+        #
+
+        if response is not None:
+
+            records = response
+
+        assert records is not None
+
+        action = self._editor.render(
+
+            records,
+
+            submitted=submitted,
+
+            validator=self.validate_records,
+
+        )
+
+        match action:
+
+            case EditorAction.SUBMIT:
+
+                errors = self.validate_records(
+
+                    records,
+
+                )
+
+                if errors:
+
+                    for error in errors:
+
+                        st.error(error)
+
+                    return None
+
+                return records
+
+            case _:
+
+                return None
+
+    # ==========================================================
+    # FORM
+    # ==========================================================
+
+    def validate_records(
+        self,
+        records: Records,
+    ) -> list[str]:
+
+        return records.validate()
+
+    def render_form(
+        self,
+        *,
+        context: Records | None = None,
+        records: Records | None = None,
+        **kwargs,
+    ) -> Records | str | None:
+
+        raise NotImplementedError
+
+
+# ==========================================================
+# REGISTRY
+# ==========================================================
+
+class AssetRegistry:
+    """
+    Catálogo de assets de um módulo.
+    """
+
+    def __init__(
+        self,
+        *assets: Asset,
+    ):
+
+        self._assets = tuple(
+
+            assets,
+
+        )
+
+    # ==========================================================
+    # PUBLIC
+    # ==========================================================
+
+    def all(
+        self,
+    ) -> tuple[Asset, ...]:
+
+        return self._assets
 
     def allowed(
         self,
-        *,
-        page_code: str,
-        resources: tuple[Resource, ...],
-    ) -> tuple[AssetDefinition, ...]:
-        page = page_code.strip().casefold()
-        page_resources = tuple(
-            resource
-            for resource in resources
-            if resource.page_code.strip().casefold() == page
-        )
-        page_wide_access = any(not resource.form_code for resource in page_resources)
-        allowed_forms = {
-            resource.form_code.strip().casefold()
-            for resource in page_resources
-            if resource.form_code
-        }
+        resources: set[int],
+        authenticated: bool | None = None,
+    ) -> tuple[Asset, ...]:
+        """
+        Retorna os assets permitidos,
+        ordenados conforme definido
+        no catálogo.
+        """
+
+        if authenticated is None:
+
+            authenticated = bool(resources)
 
         return tuple(
-            asset
-            for asset in self.items
-            if page_wide_access
-            or (
-                asset.form_code is not None
-                and asset.form_code.strip().casefold() in allowed_forms
+
+            sorted(
+
+                (
+
+                    asset
+
+                    for asset in self._assets
+
+                    if (
+
+                        asset.definition.resource_id
+
+                        in resources
+
+                    )
+
+                    or (
+
+                        not authenticated
+
+                        and asset.definition.resource_id == 1
+
+                    )
+
+                ),
+
+                key=lambda asset: asset.order,
+
             )
+
+        )
+
+    def by_keys(
+        self,
+        *keys: str,
+        resources: set[int] | None = None,
+        authenticated: bool | None = None,
+    ) -> tuple[Asset, ...]:
+
+        keys = set(
+
+            keys,
+
+        )
+
+        assets = self._assets
+
+        if resources is not None:
+
+            assets = self.allowed(
+
+                resources,
+
+                authenticated=authenticated,
+
+            )
+
+        return tuple(
+
+            asset
+
+            for asset in assets
+
+            if asset.definition.key in keys
+
         )

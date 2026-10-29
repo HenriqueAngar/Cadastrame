@@ -28,6 +28,14 @@ class AuthenticationError(Exception):
     """Erro base da autenticação."""
 
 
+class AccessDeniedError(AuthenticationError):
+    """Operação não autorizada para o usuário atual."""
+
+
+class PasswordAlreadySetError(AuthenticationError):
+    """Primeiro acesso não pode sobrescrever uma senha existente."""
+
+
 class UserNotFoundError(AuthenticationError):
     """Usuário não encontrado."""
 
@@ -45,6 +53,8 @@ class InactiveUserError(AuthenticationError):
 # ==========================================================
 
 _MESSAGES = {
+    AccessDeniedError: "Você não tem permissão para realizar esta operação.",
+    PasswordAlreadySetError: "Esta conta já possui senha. Utilize o login ou solicite recuperação de acesso.",
 
     UserNotFoundError:
         "Usuário não encontrado.",

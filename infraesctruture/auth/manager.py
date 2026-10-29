@@ -14,6 +14,8 @@ from infraesctruture.auth.utils.models import (
 
 from infraesctruture.auth.utils.handler import (
     AuthenticationStatus,
+    AccessDeniedError,
+    PasswordAlreadySetError,
     InactiveUserError,
     InvalidPasswordError,
     UserNotFoundError,
@@ -70,6 +72,11 @@ class AuthManager:
         user = self._get_user(
             email,
         )
+
+        if user.password is not None:
+            raise PasswordAlreadySetError()
+        if not password or not password.strip():
+            raise InvalidPasswordError()
 
         password_hash = Security.hash_password(
             password,
@@ -146,6 +153,30 @@ class AuthManager:
         if not user.active:
             raise InactiveUserError()
 
+        return user
+
+    def refresh(self) -> bool:
+        """Revalida conta e permissões no banco, sem renovar sessão expirada."""
+        if not self._session.authenticated or self._session.expired():
+            return False
+        try:
+            user = self._provider.get_user_by_id(self._session.user.iduser)
+            if user is None or not user.active:
+                self._session.logout()
+                return False
+            resources = self._provider.get_role_resources(user.idrole)
+            self._session.update_user(self._context(user, resources))
+            return True
+        except Exception:
+            self._session.logout()
+            raise
+
+    def require_resource(self, page_code: str, form_code: str) -> UserContext:
+        if not self.refresh():
+            raise AccessDeniedError()
+        user = self._session.user
+        if not any(r.page_code == page_code and r.form_code == form_code for r in user.resources):
+            raise AccessDeniedError()
         return user
 
     def _start_session(

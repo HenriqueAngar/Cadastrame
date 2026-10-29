@@ -1,1 +1,0 @@
-"""Conexões com recursos externos."""

@@ -1,39 +1,216 @@
-"""Classe base para módulos da aplicação."""
+"""Componente base para módulos."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import (
+    dataclass,
+    field,
+)
 
 import streamlit as st
 
-from ui.components.modules.assets import AssetRegistry
-from ui.components.modules.navigator import FormNavigator
+from services.base_service import Service
+
+from shared.records import Records
+
+from ui.components.modules.assets import (
+    AssetRegistry,
+)
+
+from ui.components.modules.navigator import (
+    FormNavigator,
+)
 
 
-@dataclass(frozen=True, slots=True)
+# ==========================================================
+# DEFINITION
+# ==========================================================
+
+@dataclass(slots=True, frozen=True)
 class ModuleDefinition:
-    """Metadados declarativos de um módulo."""
+    """
+    Definição declarativa de um módulo.
+    """
 
     key: str
-    title: str
-    icon: str
-    navigator: bool = True
-    resource_page_code: str | None = None
-    placeholder: str = "Aqui haverá formulários deste módulo."
 
+    title: str
+
+    navigator: bool = True
+
+
+# ==========================================================
+# MODULE
+# ==========================================================
 
 @dataclass(slots=True)
 class Module:
-    """Base para módulos; mantém assets preparados para a próxima etapa."""
+    """
+    Componente base para módulos.
+
+    Responsabilidades
+
+        • Determinar os assets disponíveis
+
+        • Controlar a navegação entre assets
+
+        • Associar o contrato do asset aos registros
+
+        • Encaminhar registros ao serviço
+    """
 
     definition: ModuleDefinition
+
     assets: AssetRegistry
-    navigator: FormNavigator = field(init=False)
 
-    def __post_init__(self) -> None:
-        self.navigator = FormNavigator(self.definition.key)
+    service: Service
 
-    def respond(self) -> None:
-        st.title(f"{self.definition.icon} {self.definition.title}")
-        st.info(self.definition.placeholder)
-        return None
+    navigator: FormNavigator = field(
+        init=False,
+    )
+
+    def __post_init__(
+        self,
+    ) -> None:
+
+        self.navigator = FormNavigator(
+
+            key=self.definition.key,
+
+        )
+
+    # ==========================================================
+    # PUBLIC
+    # ==========================================================
+
+    def respond(
+        self,
+        *,
+        context: Records | None = None,
+        records: Records | None = None,
+        resources: set[int] | None = None,
+        authenticated: bool = False,
+        **kwargs,
+    ) -> Records | str | None:
+
+        assets = self.service.allowed(
+
+            self.assets,
+
+            context,
+
+            resources=resources or set(),
+
+            authenticated=authenticated,
+
+        )
+
+        if not assets:
+
+            st.info(
+
+                "Nenhum formulário disponível.",
+
+            )
+
+            return None
+
+        st.title(
+
+            self.definition.title,
+
+        )
+
+        # ======================================================
+        # NAVIGATION
+        # ======================================================
+
+        if self.definition.navigator:
+
+            navigation = self.navigator.render(
+
+                assets,
+
+            )
+
+            asset = navigation.asset
+
+            # ==================================================
+            # ASSET CHANGE
+            # ==================================================
+
+            if navigation.changed:
+
+                if records is not None:
+
+                    records.clear()
+
+                st.rerun()
+
+            st.divider()
+
+        else:
+
+            asset = assets[0]
+
+        # ======================================================
+        # RECORD CONTRACT
+        # ======================================================
+
+        if records is None:
+
+            records = Records(
+
+                columns=asset.definition.columns,
+
+            )
+
+        else:
+
+            records.columns = asset.definition.columns
+
+        # ======================================================
+        # ASSET
+        # ======================================================
+
+        response = asset.respond(
+
+            context=context,
+
+            records=records,
+
+            submitted=self.navigator.submitted,
+
+            **kwargs,
+
+        )
+
+        if response is None:
+
+            return None
+
+        if isinstance(
+
+            response,
+
+            str,
+
+        ):
+
+            return response
+
+        # ======================================================
+        # SERVICE
+        # ======================================================
+
+        result = self.service.process(
+
+            asset.definition.key,
+
+            response,
+
+        )
+
+        self.navigator.submitted = True
+
+        return result

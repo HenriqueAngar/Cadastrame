@@ -1,26 +1,114 @@
-"""Validação das senhas de acesso."""
+"""Fluxo de autenticação por senha."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class Password:
-    value: str
+    """
+    Estado do fluxo de autenticação
+    por senha.
+    """
+
+    email: str
+
+    value: str = ""
+
     confirmation: str = ""
+
+    authenticated: bool = False
+
+    created: bool = False
+
+    error: str | None = None
+
+    # ==========================================================
+    # VALIDATION
+    # ==========================================================
 
     @property
     def empty(self) -> bool:
+
         return not self.value.strip()
 
     @property
     def confirmed(self) -> bool:
-        return self.value == self.confirmation
 
-    def validate(self, *, require_confirmation: bool = False) -> str | None:
+        return (
+            not self.confirmation
+            or self.value == self.confirmation
+        )
+
+    @property
+    def valid(self) -> bool:
+
+        self.error = None
+
         if self.empty:
-            return "Informe uma senha."
-        if require_confirmation and not self.confirmed:
-            return "As senhas não coincidem."
-        return None
+
+            self.fail(
+                "Informe uma senha.",
+            )
+
+            return False
+
+        if not self.confirmed:
+
+            self.fail(
+                "As senhas não coincidem.",
+            )
+
+            return False
+
+        return True
+
+    # ==========================================================
+    # PUBLIC
+    # ==========================================================
+
+    def authenticated_success(
+        self,
+    ) -> None:
+
+        self.error = None
+
+        self.created = False
+
+        self.authenticated = True
+
+    def created_success(
+        self,
+    ) -> None:
+
+        self.error = None
+
+        self.created = True
+
+        self.authenticated = True
+
+    def fail(
+        self,
+        message: str,
+    ) -> None:
+
+        self.error = message
+
+        self.authenticated = False
+
+        self.created = False
+
+    def clear(
+        self,
+    ) -> None:
+
+        self.value = ""
+
+        self.confirmation = ""
+
+        self.authenticated = False
+
+        self.created = False
+
+        self.error = None

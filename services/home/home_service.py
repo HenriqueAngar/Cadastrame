@@ -1,52 +1,159 @@
-"""Coordena a identificação, autenticação e criação inicial de senha."""
+"""Serviços de autenticação."""
 
 from __future__ import annotations
 
-from infraesctruture.auth.manager import AuthManager
-from infraesctruture.auth.utils.handler import AuthenticationStatus
 from domain.home.login import Login
 from domain.home.password import Password
 
+from services.base_service import Service
 
-class HomeService:
-    def __init__(self, auth: AuthManager | None = None) -> None:
-        self._auth = auth or AuthManager()
+from shared.records import Records
 
-    @property
-    def session(self):
-        return self._auth.session
 
-    def identify(self, email: str) -> AuthenticationStatus:
-        login = Login(email)
-        if not login.valid:
-            raise ValueError("Informe um e-mail válido.")
-        return self._auth.identify(login.normalized_email)
+class HomeService(Service):
 
-    def authenticate(self, email: str, value: str) -> AuthenticationStatus:
-        login = Login(email)
-        if not login.valid:
-            raise ValueError("Informe um e-mail válido.")
+    def __init__(self):
 
-        password = Password(value)
-        error = password.validate()
-        if error:
-            raise ValueError(error)
+        super().__init__(
 
-        return self._auth.login(login.normalized_email, password.value)
+            domain={
+
+                "login": Login,
+
+                "password": Password,
+
+            },
+
+        )
+
+    # ==========================================================
+    # MODULE
+    # ==========================================================
+
+    def allowed(
+        self,
+        forms,
+        records: Records | None = None,
+        *,
+        resources: set[int] | None = None,
+        authenticated: bool = False,
+    ):
+
+        step = "login"
+
+        if records is not None:
+
+            step = records.metadata.get(
+
+                "step",
+
+                "login",
+
+            )
+
+        return forms.by_keys(
+
+            step,
+
+            resources=resources,
+
+            authenticated=authenticated,
+
+        )
+
+    def process(
+        self,
+        key: str,
+        records: Records,
+    ) -> Records:
+
+        return getattr(
+
+            self,
+
+            key,
+
+        )(
+
+            records,
+
+        )
+
+    # ==========================================================
+    # DOMAIN
+    # ==========================================================
+
+    def login(
+        self,
+        records: Records,
+    ) -> Records:
+
+        record = records.data[0]
+
+        response = Records()
+
+        response.metadata["key"] = "identify"
+
+        response.add(
+
+            self.domain["login"](
+
+                email=record["email"],
+
+            )
+
+        )
+
+        return response
+
+    def password(
+        self,
+        records: Records,
+    ) -> Records:
+
+        record = records.data[0]
+
+        response = Records()
+
+        response.metadata["key"] = "login"
+
+        response.add(
+
+            self.domain["password"](
+
+                email=record["email"],
+
+                value=record["password"],
+
+            )
+
+        )
+
+        return response
 
     def create_password(
         self,
-        email: str,
-        value: str,
-        confirmation: str,
-    ) -> AuthenticationStatus:
-        login = Login(email)
-        if not login.valid:
-            raise ValueError("Informe um e-mail válido.")
+        records: Records,
+    ) -> Records:
 
-        password = Password(value, confirmation)
-        error = password.validate(require_confirmation=True)
-        if error:
-            raise ValueError(error)
+        record = records.data[0]
 
-        return self._auth.create_password(login.normalized_email, password.value)
+        response = Records()
+
+        response.metadata["key"] = "create_password"
+
+        response.add(
+
+            self.domain["password"](
+
+                email=record["email"],
+
+                value=record["password"],
+
+                confirmation=record["confirmation"],
+
+            )
+
+        )
+
+        return response
