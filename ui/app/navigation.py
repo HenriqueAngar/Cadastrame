@@ -1,204 +1,420 @@
-"""Orquestra autenticação, autorização e navegação principal."""
+"""Gerenciamento da navegação."""
 
 from __future__ import annotations
-
-import logging
 
 import streamlit as st
 
 from infraesctruture.auth.manager import AuthManager
-from infraesctruture.auth.utils.handler import (
-    AuthenticationError,
-    AuthenticationStatus,
-    message as authentication_message,
-)
-from services.home.home_service import HomeService
-from ui.app.navigator import Navigator
-from ui.app.registry import ModuleRegistration, ModuleRegistry
-from ui.modules.home.home_module import HomeAction, HomeModule
+from infraesctruture.auth.utils.handler import AuthenticationError, message
+from infraesctruture.connection.config import Settings
+from psycopg import Error as DatabaseError
 
-logger = logging.getLogger(__name__)
+from shared.records import Records
+
+from ui.app.navigator import Navigator
+from ui.app.registry import ModuleRegistry
 
 
 class Navigation:
-    """Mantém o usuário na Home até autenticar e filtra áreas por recurso."""
 
-    def __init__(self) -> None:
+    def __init__(self):
+
         self._auth = AuthManager()
-        self._home_service = HomeService(self._auth)
+
         self._navigator = Navigator()
+
         self._registry = ModuleRegistry()
 
+
+
+    # ==========================================================
+    # PUBLIC
+    # ==========================================================
+
     def run(self) -> None:
-        session = self._auth.session
-        authenticated = session.authenticated
+        try:
+            self._run()
+        except AuthenticationError as error:
+            st.error(message(error))
+        except DatabaseError:
+            self._auth.logout()
+            self._navigator.clear()
+            st.error("Não foi possível validar o acesso. Tente entrar novamente.")
 
-        if authenticated and session.expired():
-            self._navigator.reset()
-            st.rerun()
+    def _run(
+        self,
+    ) -> None:
 
-        authenticated = session.authenticated
-        if authenticated:
-            session.touch()
-            started_at = st.session_state.get("started_at")
-            self._navigation_key = (
-                f"application-navigation-{started_at.isoformat()}"
-                if started_at
-                else "application-navigation"
+        if self._auth.session.authenticated:
+            previous = self._auth.session.user
+            if not self._auth.refresh():
+                self._navigator.clear()
+            else:
+                current = self._auth.session.user
+                if previous != current:
+                    self._navigator.clear()
+                    self._navigator.transition("homepage")
+                self._auth.session.touch()
+                st.sidebar.caption(f"Conectado como {current.username}")
+                if st.sidebar.button("Sair", key="auth:logout"):
+                    self._auth.logout()
+                    self._navigator.clear()
+                    st.rerun()
+
+        if Settings().application.environment == "development":
+            st.sidebar.caption("Ambiente de desenvolvimento")
+
+        resources = self._resources()
+
+        modules = self._modules()
+
+        if not modules:
+
+            st.error(
+
+                "Nenhum módulo disponível.",
+
             )
-        else:
-            self._navigator.reset()
 
-        resources = session.user.resources if authenticated and session.user else ()
-        registrations = self._registry.allowed(
-            resources,
-            authenticated=authenticated,
-        )
-
-        if self._navigator.module not in {
-            registration.definition.key for registration in registrations
-        }:
-            self._navigator.open_module("home")
-
-        if authenticated:
-            if st.sidebar.button("Sair", key="application-logout", use_container_width=True):
-                self._auth.logout()
-                self._navigator.reset()
-                st.rerun()
-            selected = self._select_module(registrations)
-        else:
-            selected = self._registry.by_key("home")
-
-        if self._navigator.module != selected.definition.key:
-            self._navigator.open_module(selected.definition.key)
-            st.rerun()
-
-        if selected.definition.key == "home":
-            response = HomeModule().respond(
-                authenticated=authenticated,
-                step=self._navigator.authentication_step,
-                email=self._navigator.email,
-                error=self._navigator.error,
-                username=session.user.username if authenticated and session.user else None,
-                modules=registrations,
-            )
-            self._handle_home_response(response, registrations)
             return
 
-        selected.module().respond()
+        definition = self._definition(
 
-    def _select_module(
+            modules,
+
+        )
+
+        component = definition.module()
+
+        response = component.respond(
+
+            context=self._navigator.context,
+
+            records=self._navigator.records,
+
+            username=(
+
+                self._auth.session.user.username
+
+                if self._auth.session.authenticated
+
+                else None
+
+            ),
+
+            modules=tuple(
+
+                module
+
+                for module in modules
+
+                if module.key != "home"
+
+            ),
+
+            resources=resources,
+
+            authenticated=self._auth.session.authenticated,
+
+        )
+
+        if definition.key == "home":
+
+            self._home_flow(
+
+                response,
+
+            )
+
+            return
+
+        self._module_flow(
+
+            response,
+
+        )
+
+    # ==========================================================
+    # AUTH
+    # ==========================================================
+
+    def _authenticate(
         self,
-        registrations: tuple[ModuleRegistration, ...],
-    ) -> ModuleRegistration:
-        home = self._registry.by_key("home")
-        if self._navigator.module == "home":
-            return home
+        records: Records,
+    ) -> None:
 
-        if st.sidebar.button("Home", key="application-home"):
-            return home
+        if records.empty:
+
+            return
+
+        action = records.metadata["key"]
+
+        domain = records.data[0]
+
+        match action:
+
+            case "identify":
+
+                status = self._auth.identify(
+
+                    email=domain.email,
+
+                )
+
+                self._navigator.identify(
+
+                    status,
+
+                    records,
+
+                )
+
+            case "login":
+
+                self._auth.login(
+
+                    email=domain.email,
+
+                    password=domain.value,
+
+                )
+
+                domain.clear()
+                self._navigator.clear()
+                self._navigator.login(Records())
+
+            case "create_password":
+
+                self._auth.create_password(
+
+                    email=domain.email,
+
+                    password=domain.value,
+
+                )
+
+                domain.clear()
+                self._navigator.clear()
+                self._navigator.login(Records())
+
+    # ==========================================================
+    # MODULES
+    # ==========================================================
+
+    def _resources(
+        self,
+    ) -> set[int]:
+
+        if not self._auth.session.authenticated:
+
+            return set()
+
+        return {
+
+            resource.id
+
+            for resource
+
+            in self._auth.session.user.resources
+
+        }
+
+    def _modules(
+        self,
+    ):
+
+        return self._registry.allowed(
+
+            self._resources(),
+
+        )
+
+    def _definition(
+        self,
+        modules,
+    ):
+
+        if not self._auth.session.authenticated:
+
+            return self._registry.by_key(
+
+                "home",
+
+            )
+
+        if self._navigator.module is None:
+
+            self._navigator.open_module(
+
+                "home",
+
+            )
+
+        if self._navigator.module == "home":
+
+            return self._registry.by_key(
+
+                "home",
+
+            )
+
+        # Nunca confia apenas no valor persistido em session_state. A lista
+        # recebida aqui já foi filtrada pelos recursos do usuário atual.
+        # Qualquer módulo antigo, inválido ou não autorizado volta para a
+        # página inicial sem sequer renderizar seu componente.
+        if not any(
+
+            module.key == self._navigator.module
+
+            for module in modules
+
+        ):
+
+            self._navigator.open_module(
+
+                "home",
+
+            )
+
+            return self._registry.by_key(
+
+                "home",
+
+            )
+
+        return self._sidebar(
+
+            modules,
+
+        )
+
+    # ==========================================================
+    # NAVIGATION
+    # ==========================================================
+
+    def _sidebar(
+        self,
+        modules,
+    ):
 
         available = tuple(
-            registration
-            for registration in registrations
-            if registration.definition.key != "home"
+
+            module
+
+            for module in modules
+
+            if module.key != "home"
+
         )
+
         if not available:
-            return home
 
-        labels = [registration.label for registration in available]
-        selected_label = st.sidebar.radio(
-            "Navegação",
-            labels,
-            index=self._registry.index(self._navigator.module, available),
-            key=self._navigation_key,
-        )
-        return next(registration for registration in available if registration.label == selected_label)
+            self._navigator.open_module(
 
-    def _handle_home_response(
-        self,
-        response: HomeAction | str | None,
-        registrations: tuple[ModuleRegistration, ...],
-    ) -> None:
-        if isinstance(response, str):
-            selected = next(
-                (
-                    registration
-                    for registration in registrations
-                    if registration.definition.key == response
-                ),
-                None,
+                "home",
+
             )
-            if selected is not None:
-                # The sidebar radio is not rendered on Home, so its next
-                # selection can safely follow the Home shortcut.
-                if self._auth.session.authenticated:
-                    st.session_state[self._navigation_key] = selected.label
-                self._navigator.open_module(response)
-                st.rerun()
+
+            return self._registry.by_key(
+
+                "home",
+
+            )
+
+        selected = st.sidebar.radio(
+
+            "Navegação",
+
+            [
+
+                module.label
+
+                for module in available
+
+            ],
+
+            index=self._registry.index(
+
+                self._navigator.module,
+
+                available,
+
+            ),
+
+        )
+
+        module = next(
+
+            module
+
+            for module in available
+
+            if module.label == selected
+
+        )
+
+        self._navigator.open_module(
+
+            module.key,
+
+        )
+
+        return module
+
+    # ==========================================================
+    # FLOWS
+    # ==========================================================
+
+    def _home_flow(
+        self,
+        response,
+    ) -> None:
+
+        if response is None:
+
             return
 
-        if not isinstance(response, HomeAction):
-            return
+        if isinstance(
 
-        if response.key == "back_to_identify":
-            self._navigator.set_authentication(step="identify", email="")
+            response,
+
+            str,
+
+        ):
+
+            self._navigator.open_module(
+
+                response,
+
+            )
+
             st.rerun()
 
-        try:
-            if response.key == "identify":
-                status = self._home_service.identify(response.email)
-                if status is AuthenticationStatus.USER_NOT_FOUND:
-                    self._navigator.set_authentication(
-                        step="identify",
-                        email=response.email.strip(),
-                        error="Este e-mail não possui acesso ao Cadastrame.",
-                    )
-                elif status is AuthenticationStatus.FIRST_ACCESS:
-                    self._navigator.set_authentication(
-                        step="create_password",
-                        email=response.email.strip().lower(),
-                    )
-                elif status is AuthenticationStatus.PASSWORD_REQUIRED:
-                    self._navigator.set_authentication(
-                        step="password",
-                        email=response.email.strip().lower(),
-                    )
-            elif response.key == "login":
-                self._home_service.authenticate(response.email, response.password)
-                self._authenticated_home()
-            elif response.key == "create_password":
-                self._home_service.create_password(
-                    response.email,
-                    response.password,
-                    response.confirmation,
-                )
-                self._authenticated_home()
-        except AuthenticationError as error:
-            self._navigator.set_authentication(
-                step=self._navigator.authentication_step,
-                email=self._navigator.email or response.email,
-                error=authentication_message(error),
+            return
+
+        if isinstance(
+
+            response,
+
+            Records,
+
+        ):
+
+            self._authenticate(
+
+                response,
+
             )
-        except ValueError as error:
-            self._navigator.set_authentication(
-                step=self._navigator.authentication_step,
-                email=self._navigator.email or response.email,
-                error=str(error),
-            )
-        except Exception:
-            logger.exception("Falha ao executar o fluxo de autenticação.")
-            self._navigator.set_authentication(
-                step=self._navigator.authentication_step,
-                email=self._navigator.email or response.email,
-                error=(
-                    "Não foi possível acessar a autenticação. "
-                    "Verifique a configuração local do banco de dados."
-                ),
-            )
+
+            st.rerun()
+
+    def _module_flow(
+        self,
+        response,
+    ) -> None:
+        
+        if response is None:
+
+            return
 
         st.rerun()
-
-    def _authenticated_home(self) -> None:
-        self._navigator.open_module("home")
-        self._navigator.set_authentication(step="homepage", email="")

@@ -79,7 +79,14 @@ class Session:
         st.session_state.started_at = now
         st.session_state.expires_at = now + self._timeout
 
+    def update_user(self, user: UserContext) -> None:
+        st.session_state.user = user
+
     def logout(self) -> None:
+
+        # Remove também formulários, pendentes e seleção do usuário anterior.
+        for key in list(st.session_state):
+            del st.session_state[key]
 
         st.session_state.user = None
         st.session_state.authenticated = False

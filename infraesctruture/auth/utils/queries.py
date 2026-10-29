@@ -29,7 +29,7 @@ UPDATE cadastrame.users
 SET
     password = %s,
     updated_at = CURRENT_TIMESTAMP
-WHERE iduser = %s;
+WHERE iduser = %s AND password IS NULL;
 """
 
 
@@ -92,3 +92,4 @@ ORDER BY
     r.page_code,
     r.form_code;
 """
+GET_USER_BY_ID = GET_USER_BY_EMAIL.replace("WHERE lower(email) = lower(%s) and active is true;", "WHERE iduser = %s AND active IS TRUE;")

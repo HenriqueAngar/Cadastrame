@@ -1,7 +1,7 @@
 {
   "application": {
     "name": "CadastraME",
-    "environment": "production",
+    "environment": "development",
     "debug": true,
     "timezone": "America/Sao_Paulo"
   },
