@@ -33,14 +33,16 @@ Atualmente, essas informações são frequentemente mantidas em planilhas Excel 
 
 O projeto tem como objetivo **centralizar e padronizar a entrada dessas informações**, reduzindo a dependência de planilhas e facilitando sua utilização nos processos de **Business Intelligence (BI)** e na geração de dashboards corporativos.
 
-## Etapa atual — Codificação final e implementação/teste do Projeto
+Writing
 
-O projeto encontra-se atualmente na **fase de codificação final**, com a implementação progressiva do sistema com seus requisitos.
+## Etapa atual — Codificação final, implementação e testes do projeto
 
-Nesta etapa, estão sendo desenvolvidos e integrados:
+O projeto encontra-se na fase de codificação final, com foco na validação dos requisitos, na realização de testes e na preparação do sistema para sua aplicação no contexto do cliente.
 
-- Validação e teste do sistema;
-- Relatos e correção de possiveis bugs;
-- finalização e aplicação do sistema no contexto do cleinte;
+Nesta etapa, estão sendo realizadas as seguintes atividades:
 
-O desenvolvimento ocorre de forma **incremental**, com as tarefas sendo acompanhadas entre as etapas de desenvolvimento, revisão e conclusão.
+- **Validação e testes do sistema:** verificação do funcionamento das funcionalidades implementadas e da conformidade com os requisitos definidos.
+- **Identificação e correção de bugs:** registro de possíveis falhas, análise de suas causas e implementação das correções necessárias.
+- **Finalização e implantação do sistema:** conclusão dos ajustes finais e preparação para a aplicação do sistema no ambiente e no contexto de utilização do cliente.
+
+O desenvolvimento ocorre de forma incremental, com acompanhamento contínuo das atividades, revisões e validações, visando garantir a qualidade, a estabilidade e o funcionamento adequado do sistema antes e durante sua aplicação no contexto do cliente.
