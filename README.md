@@ -33,9 +33,7 @@ Atualmente, essas informações são frequentemente mantidas em planilhas Excel 
 
 O projeto tem como objetivo **centralizar e padronizar a entrada dessas informações**, reduzindo a dependência de planilhas e facilitando sua utilização nos processos de **Business Intelligence (BI)** e na geração de dashboards corporativos.
 
-
-
-## 📌 Etapa atual — Documentação e validação com o cliente
+## Etapa atual — Documentação e validação com o cliente
 
 O projeto encontra-se em sua etapa final, na qual estão sendo realizadas atividades de documentação e validação junto ao cliente.
 
