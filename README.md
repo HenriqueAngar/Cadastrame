@@ -34,14 +34,17 @@ Atualmente, essas informações são frequentemente mantidas em planilhas Excel 
 O projeto tem como objetivo **centralizar e padronizar a entrada dessas informações**, reduzindo a dependência de planilhas e facilitando sua utilização nos processos de **Business Intelligence (BI)** e na geração de dashboards corporativos.
 
 
-## Etapa atual — Codificação final, implementação e testes do projeto
 
-O projeto encontra-se na fase de codificação final, com foco na validação dos requisitos, na realização de testes e na preparação do sistema para sua aplicação no contexto do cliente.
+## 📌 Etapa atual — Documentação e validação com o cliente
 
-Nesta etapa, estão sendo realizadas as seguintes atividades:
+O projeto encontra-se em sua etapa final, na qual estão sendo realizadas atividades de documentação e validação junto ao cliente.
 
-- **Validação e testes do sistema:** verificação do funcionamento das funcionalidades implementadas e da conformidade com os requisitos definidos.
-- **Identificação e correção de bugs:** registro de possíveis falhas, análise de suas causas e implementação das correções necessárias.
-- **Finalização e implantação do sistema:** conclusão dos ajustes finais e preparação para a aplicação do sistema no ambiente e no contexto de utilização do cliente.
+## Pontos em análise
 
-O desenvolvimento ocorre de forma incremental, com acompanhamento contínuo das atividades, revisões e validações, visando garantir a qualidade, a estabilidade e o funcionamento adequado do sistema antes e durante sua aplicação no contexto do cliente.
+- **Testes de usabilidade:** avaliar a facilidade de utilização do sistema pelo cliente.
+- **Feedback do cliente:** verificar se o sistema atende às necessidades e demandas do dia a dia.
+- **Identificação de bugs e erros:** detectar possíveis falhas e inconsistências para realizar os ajustes necessários.
+
+## Objetivo desta etapa
+
+Garantir que o sistema esteja funcionando corretamente, atenda às expectativas do cliente e esteja preparado para sua entrega final.
